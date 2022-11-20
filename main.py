@@ -1,51 +1,38 @@
-import numpy as np
 import random
-import cv2
-import os
-from imutils import paths
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.model_selection import train_test_split
-from sklearn.utils import shuffle
-from sklearn.metrics import accuracy_score
 
-import tensorflow as tf 
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D
-from tensorflow.keras.layers import MaxPooling2D
-from tensorflow.keras.layers import Activation
-from tensorflow.keras.layers import Flatten
-from tensorflow.keras.layers import Dense
+import tensorflow as tf
 from tensorflow.keras.optimizers import SGD
 from tensorflow.keras import backend as K
+
+from fl_mnist_implementation_tutorial_utils import *
+import pandas as pd
 
 from google.colab import drive
 drive.mount('/content/drive')
 import sys
 sys.path.insert(0,'/content/drive/MyDrive/Colab Notebooks')
 
-from fl_mnist_implementation_tutorial_utils import *
-from sklearn.preprocessing import StandardScaler
-import pandas as pd
-
 #declear path to your mnist data folder
 file_path = '/content/drive/MyDrive/FL/Book1.csv'
 
 ds = pd.read_csv(file_path)
 #apply our function
-image_list, label_list = load(ds, verbose=10000)
+data_list, label_list = load(ds, verbose=10000)
 #binarize the labels
 lb = LabelBinarizer()
 label_list = lb.fit_transform(label_list)
 
 #split data into training and test set
-X_train, X_test, y_train, y_test = train_test_split(image_list, 
+X_train, X_test, y_train, y_test = train_test_split(data_list, 
                                                     label_list, 
                                                     test_size=0.2, 
                                                     random_state=1)
 
 #create clients
-clients = create_clients(X_train, y_train, num_clients=10, initial='client')
+clients = create_clients(X_train, y_train, num_clients=3, initial='client')
 
 #process and batch the training data for each client
 clients_batched = dict()
@@ -58,17 +45,14 @@ test_batched = tf.data.Dataset.from_tensor_slices((X_test, y_test)).batch(len(y_
 comms_round = 3
     
 #create optimizer
-lr = 0.01 
+lr = 0.5
 loss='categorical_crossentropy'
 metrics = ['accuracy']
-optimizer = SGD(lr=lr, 
-                decay=lr / comms_round, 
-                momentum=0.9
-               ) 
+optimizer = SGD(lr=lr, decay=lr / comms_round, momentum=0.5) 
 
 #initialize global model
-smlp_global = SimpleMLP()
-global_model = smlp_global.build(6, 1)
+mlp_global = MLP()
+global_model = mlp_global.build(6, 1)
         
 #commence global training loop
 for comm_round in range(comms_round):
@@ -85,11 +69,10 @@ for comm_round in range(comms_round):
     
     #loop through each client and create new local model
     for client in client_names:
-        smlp_local = SimpleMLP()
-        local_model = smlp_local.build(6, 1)
-        local_model.compile(loss=loss, 
-                      optimizer=optimizer, 
-                      metrics=metrics)
+        mlp_local = MLP()
+    
+        local_model = mlp_local.build(6, 1)
+        local_model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
         
         #set local model weight to the weight of the global model
         local_model.set_weights(global_weights)
@@ -116,12 +99,10 @@ for comm_round in range(comms_round):
     for(X_test, Y_test) in test_batched:
         global_acc, global_loss = test_model(X_test, Y_test, global_model, comm_round)
         SGD_dataset = tf.data.Dataset.from_tensor_slices((X_train, y_train)).shuffle(len(y_train)).batch(320)
-smlp_SGD = SimpleMLP()
-SGD_model = smlp_SGD.build(6, 1) 
+mlp_SGD = MLP()
+SGD_model = mlp_SGD.build(6, 1) 
 
-SGD_model.compile(loss=loss, 
-              optimizer=optimizer, 
-              metrics=metrics)
+SGD_model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
 
 # fit the SGD training data to model
 _ = SGD_model.fit(SGD_dataset, epochs=100, verbose=0)

@@ -1,30 +1,15 @@
-import numpy as np
-import pandas as pd
 import random
-import cv2
-import os
-from imutils import paths
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelBinarizer
-from sklearn.model_selection import train_test_split
-from sklearn.utils import shuffle
 from sklearn.metrics import accuracy_score
 
 import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D
-from tensorflow.keras.layers import MaxPooling2D
 from tensorflow.keras.layers import Activation
-from tensorflow.keras.layers import Flatten
 from tensorflow.keras.layers import Dense
-from tensorflow.keras.optimizers import SGD
-from tensorflow.keras import backend as K
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input,Dense
 
 
 
-def load(ds, verbose=-1):
+def load(ds):
   ds['Noise'] = ds['Noise'].astype('float64')
   ds['Threshold'] = ds['Threshold'].astype('float64')
   data = ds.iloc[:,:-1].values
@@ -32,11 +17,11 @@ def load(ds, verbose=-1):
   return data, labels
 
 
-def create_clients(image_list, label_list, num_clients=10, initial='clients'):
+def create_clients(data_list, label_list, num_clients=10, initial='clients'):
     ''' return: a dictionary with keys clients' names and value as 
                 data shards - tuple of images and label lists.
         args: 
-            image_list: a list of numpy arrays of training images
+            data_list: a list of numpy arrays of training images
             label_list:a list of binarized labels for each image
             num_client: number of fedrated members (clients)
             initials: the clients'name prefix, e.g, clients_1 
@@ -47,7 +32,7 @@ def create_clients(image_list, label_list, num_clients=10, initial='clients'):
     client_names = ['{}_{}'.format(initial, i+1) for i in range(num_clients)]
 
     #randomize the data
-    data = list(zip(image_list, label_list))
+    data = list(zip(data_list, label_list))
     random.shuffle(data)
 
     #shard data and place at each client
@@ -74,13 +59,13 @@ def batch_data(data_shard, bs=32):
     return dataset.shuffle(len(label)).batch(bs)
 
 
-class SimpleMLP:
+class MLP:
     @staticmethod
     def build(shape, classes):
         inputs = Input(shape=(shape,))
-        x = Dense(200)(inputs)
+        x = Dense(3)(inputs)
         x = Activation("relu")(x)
-        x = Dense(200)(x)
+        x = Dense(2)(x)
         x = Activation("relu")(x)
         x = Dense(classes)(x)
         outputs = Activation("softmax")(x)
@@ -121,7 +106,6 @@ def sum_scaled_weights(scaled_weight_list):
 
 def test_model(X_test, Y_test,  model, comm_round):
     cce = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
-    #logits = model.predict(X_test, batch_size=100)
     logits = model.predict(X_test)
     loss = cce(Y_test, logits)
     acc = accuracy_score(tf.argmax(logits, axis=1), tf.argmax(Y_test, axis=1))
