@@ -1,0 +1,12 @@
+MANIFEST.in
+README.rst
+setup.cfg
+setup.py
+ci/__init__.py
+ci/warnings.py
+warnings_plugin.egg-info/PKG-INFO
+warnings_plugin.egg-info/SOURCES.txt
+warnings_plugin.egg-info/dependency_links.txt
+warnings_plugin.egg-info/namespace_packages.txt
+warnings_plugin.egg-info/not-zip-safe
+warnings_plugin.egg-info/top_level.txt

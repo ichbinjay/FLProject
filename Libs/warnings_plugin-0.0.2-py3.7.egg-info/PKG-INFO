@@ -1,0 +1,20 @@
+Metadata-Version: 1.1
+Name: warnings-plugin
+Version: 0.0.2
+Summary: Command-line alternative for https://github.com/jenkinsci/warnings-plugin. Useable with plugin-less CI systems.
+Home-page: https://github.com/melexis/warnings-plugin
+Author: Bavo Van Achte
+Author-email: bavo.van.achte@gmail.com
+License: MIT license
+Download-URL: https://github.com/melexis/warnings-plugin/tarball/0.0.2
+Description: 
+        ===============
+        warnings-plugin
+        ===============
+        
+        Command-line alternative for https://github.com/jenkinsci/warnings-plugin. Useable with plugin-less CI systems.
+        
+        
+        
+Keywords: Gitlab CI,warnings,CI
+Platform: any
