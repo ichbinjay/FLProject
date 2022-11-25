@@ -27,6 +27,27 @@ def myMLP(lower_limit, upper_limit):
     return classifier, acc
 
 
+def local_test(lower_limit, upper_limit, classifier):
+    import pandas as pd
+    ds = pd.read_csv(r"Book1.csv")
+
+    from sklearn.model_selection import train_test_split
+    from sklearn.preprocessing import StandardScaler
+
+    X = ds.iloc[lower_limit:upper_limit, :-1].values
+    y = ds.iloc[lower_limit:upper_limit, -1].values
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=1)
+    sc = StandardScaler()
+    X_train = sc.fit_transform(X_train)
+    X_test = sc.transform(X_test)
+    from sklearn.metrics import accuracy_score
+
+    classifier.fit(X_train, y_train)
+    y_pred = classifier.predict(X_test)
+    acc = accuracy_score(y_test, y_pred)
+    return classifier, acc
+
+
 def global_test(model):
     print("Building global model...")
     import pandas as pd
@@ -47,4 +68,3 @@ def global_test(model):
     from sklearn.metrics import accuracy_score
     acc = accuracy_score(y_test, y_pred)
     print(acc)
-
