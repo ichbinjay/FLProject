@@ -1,6 +1,8 @@
 # this code is for local client
 ll, ul = 80000, 120000
 import socket
+from time import sleep
+
 
 MCAST_GRP = '224.1.1.1'
 MCAST_PORT = 5007
@@ -13,23 +15,20 @@ first_iter = True
 model_from_server = None
 while True:
     if first_iter:
-        from model import myMLP
-        classifier, acc = myMLP(ll, ul)
+        sock.sendto(bytes("hello", "utf-8"), (MCAST_GRP, MCAST_PORT))
         first_iter = False
     else:
         import pickle
-        classifier = pickle.loads(model_from_server)
-        from model import local_test
-        classifier, acc = local_test(ll, ul, classifier)
+        model_from_server = pickle.loads(model_from_server)
+        features = model_from_server.myMLP(ll, ul)
 
-    print(acc)
-    import pickle
-
-    model_as_str = pickle.dumps(classifier)
-    sock.sendto(bytes(model_as_str), (MCAST_GRP, MCAST_PORT))
-    print("Model sent")
+        # send the features to the server
+        features_as_str = pickle.dumps(features)
+        sock.sendto(bytes(features_as_str), (MCAST_GRP, MCAST_PORT))
+        print("Features sent, waiting for the model")
+        sleep(2)
 
     # wait for the global server to send a message
-    model_from_server = sock.recv(100000000)
-    print("Model received")
-
+    model_from_server = sock.recv(50000000)
+    print("New model received")
+    sleep(2)

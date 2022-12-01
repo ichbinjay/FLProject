@@ -21,33 +21,40 @@ sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
 
 while True:
     clients = []
-    estimators = []
-    models_received = 0
-    clf = None
+    features_arr = []
+    features_received = 0
+    total_no_of_clients = 4
     while True:
-        classifier_as_str, address = sock.recvfrom(100000000)
-        print("Model received from", address, end=" ")
-        clients.append(address)
-
-        classifier = pickle.loads(classifier_as_str)
-        models_received += 1
-        estimators.append(("client"+str(models_received), classifier))
-        print(models_received, "model(s) received")
-        if models_received == 4:
-            print("Models received")
+        data, addr = sock.recvfrom(50000000)
+        clients.append(addr)
+        if len(clients) == total_no_of_clients:
             break
+    while True:
+        import model
+        model_as_str = pickle.dumps(model.Model)
 
-    from sklearn.ensemble import StackingClassifier
-    from sklearn.neural_network import MLPClassifier
-    clf = StackingClassifier(estimators=estimators, final_estimator=MLPClassifier(hidden_layer_sizes=(3, 2), random_state=5, learning_rate_init=0.5))
+        for client in clients:
+            sock.sendto(bytes(model_as_str), client)
+        print("Global model sent")
+        break
 
-    from model import global_test
-    global_test(clf)
-    estimators.clear()
+    while True:
+        # receive features from clients
+        data, addr = sock.recvfrom(50000000)
+        features_arr.append(pickle.loads(data))
+        features_received += 1
+        if features_received == total_no_of_clients:
+            break
 
     status = input("Do you want to continue? (y/n): ")
     if status == "y":
-        model_as_str = pickle.dumps(classifier)
+        # average the features
+        zipped_features = zip(*features_arr)
+        averaged_features = [sum(feature) / len(feature) for feature in zipped_features]
+
+        new_model = model.Model(averaged_features)
+        model_as_str = pickle.dumps(new_model)
+
         for client in clients:
             sock.sendto(bytes(model_as_str), client)
         print("Global model sent to clients")
