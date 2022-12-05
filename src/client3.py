@@ -13,6 +13,7 @@ sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, MULTICAST_TTL)
 
 first_iter = True
 model_from_server = None
+count = 0
 while True:
     if first_iter:
         sock.sendto(bytes("hello", "utf-8"), (MCAST_GRP, MCAST_PORT))
@@ -20,15 +21,17 @@ while True:
     else:
         import pickle
         model_from_server = pickle.loads(model_from_server)
-        features = model_from_server.myMLP(ll, ul)
+        ll, ul = 80000+count, 90000+count
+        count += 5001
+        features, acc = model_from_server.myMLP(ll, ul)
 
         # send the features to the server
-        features_as_str = pickle.dumps(features)
-        sock.sendto(bytes(features_as_str), (MCAST_GRP, MCAST_PORT))
+        data = pickle.dumps([features, acc])
+        sock.sendto(bytes(data), (MCAST_GRP, MCAST_PORT))
         print("Features sent, waiting for the model")
         sleep(2)
 
     # wait for the global server to send a message
     model_from_server = sock.recv(50000000)
-    print("New model received")
+    print("New model received...")
     sleep(2)
