@@ -42,18 +42,24 @@ while True:
         break
 
     print("Round-", round_no, "     Receiving features...", sep="", end=" ")
-    global_acc = []
+    global_acc, global_loss, global_f1, global_recall = [], [], [], []
     while True:
         # receive features from clients
         data, addr = sock.recvfrom(50000000)
         data = pickle.loads(data)
         features_arr.append(data[0])
-        global_acc.append(data[1])
+        global_acc.append(data[1][0])
+        global_loss.append(data[1][1])
+        global_f1.append(data[1][2])
+        global_recall.append(data[1][3])
         features_received += 1
         if features_received == total_no_of_clients:
             break
     print("done")
-    print("Global accuracy:", "{:.5f}".format(statistics.mean(global_acc)))
+    print("Accuracy:", "{:.5f}".format(statistics.mean(global_acc)), end=" ")
+    print("Loss:", "{:.5f}".format(statistics.mean(global_loss)), end=" ")
+    print("F1Score:", "{:.5f}".format(statistics.mean(global_f1)), end=" ")
+    print("Recall:", "{:.5f}".format(statistics.mean(global_recall)), end="\n")
 
     status = "y" #input("Do you want to continue? (y/n): ")
     if status == "y":

@@ -44,7 +44,15 @@ class Model(MLPClassifier):
                                        learning_rate="adaptive", learning_rate_init=0.00001)
             classifier.fit(X_train, y_train)
             y_pred = classifier.predict(X_test)
-            from sklearn.metrics import accuracy_score
+            from sklearn.metrics import accuracy_score, f1_score, recall_score, roc_curve
             acc = accuracy_score(y_test, y_pred)*100
-            print("{:.5f}".format(acc))
-        return classifier.coefs_, acc
+            loss = classifier.loss_
+            f1sr = f1_score(y_test, y_pred, average="macro")*100
+            recall = recall_score(y_test, y_pred, average="macro")*100
+
+            print("acc {:.3f}".format(acc), end="   ")
+            print("loss {:.3f}".format(loss), end="   ")
+            print("f1-score {:.3f}".format(f1sr), end="   ")
+            print("recall {:.3f}".format(recall), end="   ")
+            metrics = [acc, loss, f1sr, recall]
+        return classifier.coefs_, metrics

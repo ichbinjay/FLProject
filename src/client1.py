@@ -23,10 +23,10 @@ while True:
         model_from_server = pickle.loads(model_from_server)
         ll, ul = 0+count, 1000+count
         count += 1001
-        features, acc = model_from_server.myMLP(ll, ul)
+        features, metrics = model_from_server.myMLP(ll, ul)
 
         # send the features to the server
-        data = pickle.dumps([features, acc])
+        data = pickle.dumps([features, metrics])
         sock.sendto(bytes(data), (MCAST_GRP, MCAST_PORT))
         print("Features sent, waiting for the model")
         sleep(2)
