@@ -3,6 +3,7 @@ import socket
 import struct
 import pickle
 import statistics
+
 MCAST_GRP = '224.1.1.1'
 MCAST_PORT = 5007
 IS_ALL_GROUPS = True
@@ -19,11 +20,14 @@ mreq = struct.pack("4sl", socket.inet_aton(MCAST_GRP), socket.INADDR_ANY)
 
 sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
 
+
+total_no_of_clients = 4
+rounds = 13
 first_iter = True
 round_no = 0
 clients = []
-total_no_of_clients = 4
-while True:
+accuracies = []
+for _ in range(rounds):
     features_arr = []
     features_received = 0
     while first_iter:
@@ -33,6 +37,7 @@ while True:
             break
     while first_iter:
         import model
+
         model_as_str = pickle.dumps(model.Model)
 
         for client in clients:
@@ -61,7 +66,9 @@ while True:
     print("F1Score:", "{:.5f}".format(statistics.mean(global_f1)), end=" ")
     print("Recall:", "{:.5f}".format(statistics.mean(global_recall)), end="\n")
 
-    status = "y" #input("Do you want to continue? (y/n): ")
+    accuracies.append(statistics.mean(global_acc))
+
+    status = "y" # input("Do you want to continue? (y/n): ")
     if status == "y":
         # average the features
         zipped_features = zip(*features_arr)
@@ -78,3 +85,24 @@ while True:
         for client in clients:
             sock.sendto(bytes("n", "utf-8"), client)
         exit(0)
+else:
+    for client in clients:
+        sock.sendto(bytes("n", "utf-8"), client)
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    xpoints = np.array([x for x in range(rounds)])
+    ypoints = np.array(accuracies)
+
+    plt.plot(xpoints, ypoints)
+    plt.yticks([0,  40, 50, 70, 80, 90])
+
+    import os
+    previous_dir = os.getcwd()
+    os.chdir(r"C:\Users\ADMIN\pythonFLProject\outputs")
+    plt.savefig("avg_global_accs")
+    plt.close()
+    # go to previous directory
+    os.chdir(previous_dir)
+
+    exit(0)

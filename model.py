@@ -1,13 +1,13 @@
 from sklearn.neural_network import MLPClassifier
 import numpy as np
-from time import sleep
 
 
 class Model(MLPClassifier):
     def __init__(self, zipped_averaged_weights):
+        super().__init__()
         self.zipped_averaged_weights = zipped_averaged_weights
 
-    def _init_coef(self, fan_in, fan_out):
+    def _init_coef(self, fan_in, fan_out, dtype):
         if self.activation == 'logistic':
             init_bound = np.sqrt(2. / (fan_in + fan_out))
         elif self.activation in ('identity', 'tanh', 'relu'):
@@ -15,15 +15,15 @@ class Model(MLPClassifier):
         else:
             raise ValueError("Unknown activation function %s" %
                              self.activation)
-        coef_init = self.zipped_averaged_weights
-        intercept_init = self._random_state.uniform(-init_bound, init_bound, fan_out)
-
+        coef_init = self.zipped_averaged_weights.astype(dtype, copy=False)
+        intercept_init = self._random_state.uniform(-init_bound, init_bound, fan_out).astype(dtype, copy=False)
         return coef_init, intercept_init
 
-    def myMLP(self, rno, cno, lower_limit=0, upper_limit=178000):
-        sleep(1)
+    def myMLP(self, params):
+        round_no, client_no, lower_limit, upper_limit, = params[0], params[1], params[2], params[3]
+        # print("\n", round_no, client_no, layers, nodes, lower_limit, upper_limit,"\n")
         import pandas as pd
-        ds = pd.read_csv(r"C:\Users\ADMIN\pythonFLProject\Book1.csv")
+        ds = pd.read_csv(r"C:\Users\ADMIN\pythonFLProject\Book2.csv")
 
         from sklearn.model_selection import train_test_split
         from sklearn.preprocessing import StandardScaler
@@ -42,8 +42,8 @@ class Model(MLPClassifier):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=ConvergenceWarning)
 
-            classifier = MLPClassifier(hidden_layer_sizes=(7, 4), random_state=5, solver="sgd",
-                                       learning_rate="adaptive", learning_rate_init=0.00001)
+            classifier = MLPClassifier(hidden_layer_sizes=(7+round_no, 4+round_no//2), random_state=5, solver="sgd",
+                                       learning_rate="constant", learning_rate_init=0.00001)
             classifier.fit(X_train, y_train)
             y_pred = classifier.predict(X_test)
             from sklearn.metrics import accuracy_score, f1_score, recall_score, roc_curve
@@ -62,13 +62,13 @@ class Model(MLPClassifier):
             import os
             previous_dir = os.getcwd()
             os.chdir(r"C:\Users\ADMIN\pythonFLProject\outputs")
-            filename = "Round-" + str(rno) + "_Client-" + str(cno) + ".png"
+            filename = str(round_no) + "_" + str(client_no) + "_acc-{:.2f}".format(acc) + ".png"
             import matplotlib.pyplot as plt
             fpr, tpr, thresholds = roc_curve(y_test, y_pred)
             plt.plot(fpr, tpr)
             plt.xlabel("False Positive Rate")
             plt.ylabel("True Positive Rate")
-            plt.title("ROC Curve for Round " + str(rno) + " Client " + str(cno))
+            plt.title("ROC Curve for Round " + str(round_no) + " Client " + str(client_no))
             plt.savefig(filename)
             plt.close()
             # go to previous directory
