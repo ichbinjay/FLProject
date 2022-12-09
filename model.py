@@ -3,9 +3,10 @@ import numpy as np
 
 
 class Model(MLPClassifier):
-    def __init__(self, zipped_averaged_weights):
+    def __init__(self, zipped_averaged_weights, zipped_averaged_biases):
         super().__init__()
         self.zipped_averaged_weights = zipped_averaged_weights
+        self.zipped_averaged_biases = zipped_averaged_biases
 
     def _init_coef(self, fan_in, fan_out, dtype):
         if self.activation == 'logistic':
@@ -16,7 +17,7 @@ class Model(MLPClassifier):
             raise ValueError("Unknown activation function %s" %
                              self.activation)
         coef_init = self.zipped_averaged_weights.astype(dtype, copy=False)
-        intercept_init = self._random_state.uniform(-init_bound, init_bound, fan_out).astype(dtype, copy=False)
+        intercept_init = self.zipped_averaged_biases.astype(dtype, copy=False)
         return coef_init, intercept_init
 
     def myMLP(self, params):
@@ -42,7 +43,7 @@ class Model(MLPClassifier):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=ConvergenceWarning)
 
-            classifier = MLPClassifier(hidden_layer_sizes=(7+round_no, 4+round_no//2), random_state=5, solver="sgd",
+            classifier = MLPClassifier(hidden_layer_sizes=(14, 8), random_state=5, solver="sgd",
                                        learning_rate="constant", learning_rate_init=0.00001)
             classifier.fit(X_train, y_train)
             y_pred = classifier.predict(X_test)
@@ -52,6 +53,7 @@ class Model(MLPClassifier):
             f1sr = f1_score(y_test, y_pred, average="macro") * 100
             recall = recall_score(y_test, y_pred, average="macro") * 100
 
+            print("R.No ", round_no, ":", sep="", end=" ")
             print("acc {:.3f}".format(acc), end="   ")
             print("loss {:.3f}".format(loss), end="   ")
             print("f1-score {:.3f}".format(f1sr), end="   ")
@@ -73,4 +75,4 @@ class Model(MLPClassifier):
             plt.close()
             # go to previous directory
             os.chdir(previous_dir)
-        return classifier.coefs_, metrics
+        return classifier.coefs_, classifier.intercepts_, metrics

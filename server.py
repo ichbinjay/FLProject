@@ -22,13 +22,14 @@ sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
 
 
 total_no_of_clients = 4
-rounds = 13
+rounds = 6
 first_iter = True
 round_no = 0
 clients = []
 accuracies = []
 for _ in range(rounds):
-    features_arr = []
+    weights_arr = []
+    biases_arr = []
     features_received = 0
     while first_iter:
         data, addr = sock.recvfrom(50000000)
@@ -37,11 +38,16 @@ for _ in range(rounds):
             break
     while first_iter:
         import model
+        from cryptography.fernet import Fernet
 
         model_as_str = pickle.dumps(model.Model)
+        key = Fernet.generate_key()
+        f = Fernet(key)
+        model_as_str = f.encrypt(model_as_str)
+        encryption_arr = pickle.dumps([key, model_as_str])
 
         for client in clients:
-            sock.sendto(bytes(model_as_str), client)
+            sock.sendto(bytes(encryption_arr), client)
         print("Global model sent")
         first_iter = False
         break
@@ -51,12 +57,17 @@ for _ in range(rounds):
     while True:
         # receive features from clients
         data, addr = sock.recvfrom(50000000)
+        encryption_arr_from_client = pickle.loads(data)
+        data = encryption_arr_from_client[1]
+        data = Fernet(encryption_arr_from_client[0]).decrypt(data)
         data = pickle.loads(data)
-        features_arr.append(data[0])
-        global_acc.append(data[1][0])
-        global_loss.append(data[1][1])
-        global_f1.append(data[1][2])
-        global_recall.append(data[1][3])
+
+        weights_arr.append(data[0])
+        biases_arr.append(data[1])
+        global_acc.append(data[2][0])
+        global_loss.append(data[2][1])
+        global_f1.append(data[2][2])
+        global_recall.append(data[2][3])
         features_received += 1
         if features_received == total_no_of_clients:
             break
@@ -71,14 +82,23 @@ for _ in range(rounds):
     status = "y" # input("Do you want to continue? (y/n): ")
     if status == "y":
         # average the features
-        zipped_features = zip(*features_arr)
-        averaged_features = [sum(feature) / len(feature) for feature in zipped_features]
+        zipped_weights = zip(*weights_arr)
+        averaged_weights = [sum(feature) / len(feature) for feature in zipped_weights]
 
-        new_model = model.Model(averaged_features)
+        zipped_biases = zip(*biases_arr)
+        averaged_biases = [sum(feature) / len(feature) for feature in zipped_biases]
+
+        new_model = model.Model(averaged_weights, averaged_biases)
         model_as_str = pickle.dumps(new_model)
 
+        from cryptography.fernet import Fernet
+        key = Fernet.generate_key()
+        f = Fernet(key)
+        encrypted_model = f.encrypt(model_as_str)
+        encryption_arr = pickle.dumps([key, encrypted_model])
+
         for client in clients:
-            sock.sendto(bytes(model_as_str), client)
+            sock.sendto(bytes(encryption_arr), client)
         print("Global model sent to clients")
         round_no += 1
     else:
