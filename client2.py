@@ -20,10 +20,17 @@ first_iter = True
 model_from_server = None
 count = 0
 client_no = 2
+password = client_no
 round_no = 0
 while True:
     if first_iter:
-        sock.sendto(bytes("hello", "utf-8"), (MCAST_GRP, MCAST_PORT))
+        import basehash
+        hash_fn = basehash.base36()
+        userid_hashed = hash_fn.hash(client_no)
+        password_hashed = hash_fn.hash(password)
+        import pickle
+        hashed_arr = pickle.dumps([userid_hashed, password_hashed])
+        sock.sendto(bytes(hashed_arr), (MCAST_GRP, MCAST_PORT))
         first_iter = False
     else:
         ll, ul = 40000+count, 50000+count

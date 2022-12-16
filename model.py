@@ -44,7 +44,7 @@ class Model(MLPClassifier):
             warnings.simplefilter("ignore", category=ConvergenceWarning)
 
             classifier = MLPClassifier(hidden_layer_sizes=(14, 8), random_state=5, solver="sgd",
-                                       learning_rate="constant", learning_rate_init=0.00001)
+                                       learning_rate="constant", learning_rate_init=0.0000001)
             classifier.fit(X_train, y_train)
             y_pred = classifier.predict(X_test)
             from sklearn.metrics import accuracy_score, f1_score, recall_score, roc_curve

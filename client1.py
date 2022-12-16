@@ -1,4 +1,6 @@
 # this code is for local client
+import time
+
 ll, ul = 0, 40000
 import socket
 from time import sleep
@@ -18,10 +20,18 @@ first_iter = True
 model_from_server = None
 count = 0
 client_no = 1
+password = client_no
 round_no = 0
 while True:
     if first_iter:
-        sock.sendto(bytes("hello", "utf-8"), (MCAST_GRP, MCAST_PORT))
+        import basehash
+        hash_fn = basehash.base36()
+        userid_hashed = hash_fn.hash(client_no)
+        password_hashed = hash_fn.hash(password)
+        import pickle
+        hashed_arr = pickle.dumps([userid_hashed, password_hashed])
+        sock.sendto(bytes(hashed_arr), (MCAST_GRP, MCAST_PORT))
+        start = time.time()
         first_iter = False
     else:
         ll, ul = 0+count, 1000+count
@@ -48,9 +58,11 @@ while True:
         encryption_arr = pickle.dumps([key, encrypted_data])
         sock.sendto(bytes(encryption_arr), (MCAST_GRP, MCAST_PORT))
         print("Features sent, waiting for the model...  ", end="")
+        start = time.time()
         round_no += 1
 
     # wait for the global server to send a message
     model_from_server = sock.recv(50000000)
-    print("New model received!")
+    print("New model received!  ", end="")
+    print("time taken: ", time.time() - start)
     sleep(2)

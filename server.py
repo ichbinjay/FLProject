@@ -20,20 +20,30 @@ mreq = struct.pack("4sl", socket.inet_aton(MCAST_GRP), socket.INADDR_ANY)
 
 sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
 
-
 total_no_of_clients = 4
-rounds = 6
+rounds = 12
 first_iter = True
 round_no = 0
 clients = []
 accuracies = []
+credentials = {x: x for x in range(1, total_no_of_clients + 1)}
 for _ in range(rounds):
     weights_arr = []
     biases_arr = []
     features_received = 0
     while first_iter:
         data, addr = sock.recvfrom(50000000)
-        clients.append(addr)
+        userid_hashed, password_hashed = pickle.loads(data)
+
+        import basehash
+
+        hash_fn = basehash.base36()
+        user_id = hash_fn.unhash(userid_hashed)
+        password = hash_fn.unhash(password_hashed)
+
+        if credentials[user_id] == password:
+            print("Client", user_id, "authenticated!")
+            clients.append(addr)
         if len(clients) == total_no_of_clients:
             break
     while first_iter:
@@ -79,7 +89,7 @@ for _ in range(rounds):
 
     accuracies.append(statistics.mean(global_acc))
 
-    status = "y" # input("Do you want to continue? (y/n): ")
+    status = "y"  # input("Do you want to continue? (y/n): ")
     if status == "y":
         # average the features
         zipped_weights = zip(*weights_arr)
@@ -92,6 +102,7 @@ for _ in range(rounds):
         model_as_str = pickle.dumps(new_model)
 
         from cryptography.fernet import Fernet
+
         key = Fernet.generate_key()
         f = Fernet(key)
         encrypted_model = f.encrypt(model_as_str)
@@ -115,9 +126,9 @@ else:
     ypoints = np.array(accuracies)
 
     plt.plot(xpoints, ypoints)
-    plt.yticks([0,  40, 50, 70, 80, 90])
 
     import os
+
     previous_dir = os.getcwd()
     os.chdir(r"C:\Users\ADMIN\pythonFLProject\outputs")
     plt.savefig("avg_global_accs")
