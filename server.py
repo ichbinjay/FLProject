@@ -21,7 +21,7 @@ mreq = struct.pack("4sl", socket.inet_aton(MCAST_GRP), socket.INADDR_ANY)
 sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
 
 total_no_of_clients = 4
-rounds = 12
+rounds = 10
 first_iter = True
 round_no = 0
 clients = []
@@ -124,8 +124,8 @@ else:
 
     xpoints = np.array([x for x in range(rounds)])
     ypoints = np.array(accuracies)
-
     plt.plot(xpoints, ypoints)
+    plt.ylim(0, 100)
 
     import os
 

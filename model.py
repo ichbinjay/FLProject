@@ -21,7 +21,7 @@ class Model(MLPClassifier):
         return coef_init, intercept_init
 
     def myMLP(self, params):
-        round_no, client_no, lower_limit, upper_limit, = params[0], params[1], params[2], params[3]
+        round_no, client_no, lower_limit, upper_limit = params[0], params[1], params[2], params[3]
         # print("\n", round_no, client_no, layers, nodes, lower_limit, upper_limit,"\n")
         import pandas as pd
         ds = pd.read_csv(r"C:\Users\ADMIN\pythonFLProject\Book2.csv")
@@ -43,8 +43,8 @@ class Model(MLPClassifier):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=ConvergenceWarning)
 
-            classifier = MLPClassifier(hidden_layer_sizes=(14, 8), random_state=5, solver="sgd",
-                                       learning_rate="constant", learning_rate_init=0.0000001)
+            classifier = MLPClassifier(hidden_layer_sizes=(7, 4), random_state=5, solver="sgd",
+                                       learning_rate_init=0.0001, max_iter=20*(round_no+1))
             classifier.fit(X_train, y_train)
             y_pred = classifier.predict(X_test)
             from sklearn.metrics import accuracy_score, f1_score, recall_score, roc_curve
