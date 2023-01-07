@@ -5,9 +5,6 @@ ll, ul = 40000, 80000
 import socket
 from time import sleep
 
-# create folder in cwd with date and time as name
-os.chdir("outputs")
-
 
 MCAST_GRP = '224.1.1.1'
 MCAST_PORT = 5007
@@ -34,7 +31,7 @@ while True:
         first_iter = False
     else:
         ll, ul = 40000+count, 50000+count
-        count += 500
+        count += 100
 
         from cryptography.fernet import Fernet
         import pickle

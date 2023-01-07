@@ -44,7 +44,7 @@ class Model(MLPClassifier):
             warnings.simplefilter("ignore", category=ConvergenceWarning)
 
             classifier = MLPClassifier(hidden_layer_sizes=(7, 4), random_state=5, solver="sgd",
-                                       learning_rate_init=0.0001, max_iter=20*(round_no+1))
+                                       learning_rate_init=0.0001, max_iter=7*(round_no+1))
             classifier.fit(X_train, y_train)
             y_pred = classifier.predict(X_test)
             from sklearn.metrics import accuracy_score, f1_score, recall_score, roc_curve
@@ -63,7 +63,7 @@ class Model(MLPClassifier):
             # store roc curve image in the folder
             import os
             previous_dir = os.getcwd()
-            os.chdir(r"C:\Users\ADMIN\pythonFLProject\outputs")
+            os.chdir(r"C:/Users\ADMIN\pythonFLProject\outputs")
             filename = str(round_no) + "_" + str(client_no) + "_acc-{:.2f}".format(acc) + ".png"
             import matplotlib.pyplot as plt
             fpr, tpr, thresholds = roc_curve(y_test, y_pred)

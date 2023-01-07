@@ -1,8 +1,16 @@
 # this code is for global server
 import socket
+import time
 import struct
 import pickle
+import os
 import statistics
+import basehash
+import model
+from cryptography.fernet import Fernet
+import matplotlib.pyplot as plt
+import numpy as np
+
 
 MCAST_GRP = '224.1.1.1'
 MCAST_PORT = 5007
@@ -20,8 +28,9 @@ mreq = struct.pack("4sl", socket.inet_aton(MCAST_GRP), socket.INADDR_ANY)
 
 sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
 
+print("Server started, waiting for clients...")
 total_no_of_clients = 4
-rounds = 10
+rounds = 15
 first_iter = True
 round_no = 0
 clients = []
@@ -35,21 +44,17 @@ for _ in range(rounds):
         data, addr = sock.recvfrom(50000000)
         userid_hashed, password_hashed = pickle.loads(data)
 
-        import basehash
-
         hash_fn = basehash.base36()
         user_id = hash_fn.unhash(userid_hashed)
         password = hash_fn.unhash(password_hashed)
 
         if credentials[user_id] == password:
-            print("Client", user_id, "authenticated!")
             clients.append(addr)
+            print("\r",len(clients), "client(s) authenticated...",end="")
+            time.sleep(0.5)
         if len(clients) == total_no_of_clients:
             break
     while first_iter:
-        import model
-        from cryptography.fernet import Fernet
-
         model_as_str = pickle.dumps(model.Model)
         key = Fernet.generate_key()
         f = Fernet(key)
@@ -58,11 +63,11 @@ for _ in range(rounds):
 
         for client in clients:
             sock.sendto(bytes(encryption_arr), client)
-        print("Global model sent")
+        print("\nGlobal model sent!")
         first_iter = False
         break
 
-    print("Round-", round_no, "     Receiving features...", sep="", end=" ")
+    print("Round-", round_no+1, "     Receiving features...", sep="", end=" ")
     global_acc, global_loss, global_f1, global_recall = [], [], [], []
     while True:
         # receive features from clients
@@ -101,8 +106,6 @@ for _ in range(rounds):
         new_model = model.Model(averaged_weights, averaged_biases)
         model_as_str = pickle.dumps(new_model)
 
-        from cryptography.fernet import Fernet
-
         key = Fernet.generate_key()
         f = Fernet(key)
         encrypted_model = f.encrypt(model_as_str)
@@ -119,21 +122,26 @@ for _ in range(rounds):
 else:
     for client in clients:
         sock.sendto(bytes("n", "utf-8"), client)
-    import matplotlib.pyplot as plt
-    import numpy as np
 
-    xpoints = np.array([x for x in range(rounds)])
-    ypoints = np.array(accuracies)
-    plt.plot(xpoints, ypoints)
-    plt.ylim(0, 100)
-
-    import os
+    x_points = np.array([x+1 for x in range(rounds)])
+    y_points = np.array(accuracies)
+    from scipy.interpolate import make_interp_spline, BSpline
+    xn = np.linspace(x_points.min(), x_points.max(), 300)
+    spl = make_interp_spline(x_points, y_points, k=3)  # type: BSpline
+    yn = spl(xn)
+    plt.plot(xn, yn)
+    plt.xlabel("Rounds")
+    plt.ylabel("Accuracy")
+    plt.title("Accuracy vs Rounds")
+    plt.yticks([x for x in range(40, 100, 10)])
 
     previous_dir = os.getcwd()
     os.chdir(r"C:\Users\ADMIN\pythonFLProject\outputs")
-    plt.savefig("avg_global_accs")
+    plt.savefig("avg_global_acc")
+    plt.show()
     plt.close()
-    # go to previous directory
+
+    # go back to previous directory
     os.chdir(previous_dir)
 
     exit(0)

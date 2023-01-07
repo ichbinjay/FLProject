@@ -34,7 +34,7 @@ while True:
         first_iter = False
     else:
         ll, ul = 80000+count, 90000+count
-        count += 2500
+        count += 100
 
         from cryptography.fernet import Fernet
         import pickle
